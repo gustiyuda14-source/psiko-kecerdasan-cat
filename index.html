@@ -58,7 +58,7 @@
   /* ── PROGRESS ── */
   .progress-wrap {
     padding: 10px 24px 0;
-    max-width: 860px;
+    max-width: 1100px;
     margin: 0 auto;
   }
   .progress-bar-track {
@@ -81,11 +81,70 @@
     justify-content: space-between;
   }
 
+  /* ── QUIZ LAYOUT ── */
+  .quiz-layout {
+    display: flex;
+    gap: 16px;
+    max-width: 1100px;
+    margin: 16px auto 40px;
+    padding: 0 16px;
+    align-items: flex-start;
+  }
+  .quiz-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .quiz-sidebar {
+    width: 204px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 68px;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .minimap-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  }
+  .minimap-title {
+    font-size: .68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .minimap-title span {
+    font-weight: 400;
+    font-size: .68rem;
+    color: var(--primary);
+  }
+  .mm-section-label {
+    grid-column: 1 / -1;
+    font-size: .6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: 6px 2px 3px;
+    margin-top: 2px;
+    border-top: 1px solid var(--border);
+  }
+  .mm-section-label:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+
   /* ── MAIN CARD ── */
   main {
-    max-width: 860px;
-    margin: 18px auto 40px;
-    padding: 0 16px;
+    flex: 1;
+    min-width: 0;
   }
   .card {
     background: var(--card);
@@ -254,12 +313,9 @@
 
   /* ── MINI MAP ── */
   .minimap {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 18px;
-    padding-top: 18px;
-    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
   }
   .mm-btn {
     width: 30px;
@@ -411,13 +467,22 @@
     </div>
   </div>
 
-  <main>
-    <div class="card" id="questionCard">
-      <!-- Rendered dynamically -->
+  <div class="quiz-layout">
+    <div class="quiz-main">
+      <div class="card" id="questionCard">
+        <!-- Rendered dynamically -->
+      </div>
     </div>
-
-    <div class="minimap" id="minimap"></div>
-  </main>
+    <aside class="quiz-sidebar">
+      <div class="minimap-panel">
+        <div class="minimap-title">
+          Navigasi Soal
+          <span id="mmAnsweredCount">0/100</span>
+        </div>
+        <div class="minimap" id="minimap"></div>
+      </div>
+    </aside>
+  </div>
 </div>
 
 <!-- Result -->
@@ -482,7 +547,21 @@ function startTimer() {
 function buildMinimap() {
   const mm = document.getElementById('minimap');
   mm.innerHTML = '';
+  const sections = [
+    { from: 1,  label: 'Verbal',   color: '#1d4ed8' },
+    { from: 26, label: 'Logis',    color: '#9d174d' },
+    { from: 51, label: 'Analitis', color: '#065f46' },
+    { from: 76, label: 'Praktis',  color: '#92400e' },
+  ];
   soalList.forEach((q, i) => {
+    const sec = sections.find(s => s.from === q.id);
+    if (sec) {
+      const lbl = document.createElement('div');
+      lbl.className = 'mm-section-label';
+      lbl.textContent = sec.label;
+      lbl.style.color = sec.color;
+      mm.appendChild(lbl);
+    }
     const btn = document.createElement('button');
     btn.className = 'mm-btn';
     btn.textContent = q.id;
@@ -494,13 +573,16 @@ function buildMinimap() {
 }
 
 function updateMinimap() {
+  let answered = 0;
   soalList.forEach((q, i) => {
     const btn = document.getElementById(`mm-${q.id}`);
     if (!btn) return;
     btn.className = 'mm-btn';
-    if (answers[q.id] && answers[q.id].length > 0) btn.classList.add('answered');
-    if (i === current) btn.classList.add('current');
+    if (answers[q.id] && answers[q.id].length > 0) { btn.classList.add('answered'); answered++; }
+    if (i === current) { btn.classList.add('current'); btn.scrollIntoView({ block: 'nearest' }); }
   });
+  const el = document.getElementById('mmAnsweredCount');
+  if (el) el.textContent = `${answered}/${soalList.length}`;
 }
 
 // ── RENDER QUESTION ────────────────────────────────
