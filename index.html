@@ -192,9 +192,69 @@
   .result-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 
   /* ── REVIEW / PEMBAHASAN ── */
-  #review { display: none; max-width: 800px; margin: 0 auto 48px; padding: 0 18px; }
+  #review { display: none; max-width: 860px; margin: 0 auto 48px; padding: 0 18px; }
   .review-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0; flex-wrap: wrap; }
   .review-head h2 { font-size: 1.4rem; }
+
+  /* tabs */
+  .rev-tabs { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px; }
+  .rev-tab {
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 16px; border-radius: 10px; border: 2px solid var(--border);
+    background: var(--card); font-size: .83rem; font-weight: 700;
+    cursor: pointer; font-family: inherit; color: var(--muted); transition: all .15s;
+  }
+  .rev-tab:hover { border-color: var(--accent); color: var(--primary); }
+  .rev-tab.active { border-color: var(--primary); background: #ecfdf5; color: var(--primary-dark); }
+  .rev-tab-badge {
+    background: #e2e8f0; color: var(--muted); font-size: .7rem; font-weight: 800;
+    border-radius: 99px; padding: 2px 8px; min-width: 22px; text-align: center;
+  }
+  .rev-tab.active .rev-tab-badge { background: var(--primary); color: #fff; }
+  .rev-tab.active.t-verbal  { border-color:#059669; background:#d1fae5; color:#065f46; }
+  .rev-tab.active.t-verbal  .rev-tab-badge { background:#059669; }
+  .rev-tab.active.t-analitis{ border-color:#0e7490; background:#cffafe; color:#155e75; }
+  .rev-tab.active.t-analitis .rev-tab-badge { background:#0e7490; }
+  .rev-tab.active.t-praktis { border-color:#d97706; background:#fef3c7; color:#92400e; }
+  .rev-tab.active.t-praktis .rev-tab-badge { background:#d97706; }
+
+  /* summary bar */
+  .rev-summary {
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px 20px; margin-bottom: 12px;
+    display: flex; gap: 20px; flex-wrap: wrap; align-items: center;
+    box-shadow: 0 2px 10px rgba(0,0,0,.04);
+  }
+  .rev-sum-stat { text-align: center; }
+  .rev-sum-stat .n { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+  .rev-sum-stat .l { font-size: .68rem; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+  .rev-sum-divider { width: 1px; height: 36px; background: var(--border); }
+  .rev-sum-bar { flex: 1; min-width: 140px; }
+  .rev-sum-bar .pct-lbl { font-size: .82rem; font-weight: 800; margin-bottom: 6px; }
+  .rev-sum-bar-track { height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
+  .rev-sum-bar-fill { height: 100%; border-radius: 99px; transition: width .5s ease; }
+
+  /* filter */
+  .rev-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .rev-filter-btn {
+    padding: 6px 14px; border-radius: 8px; border: 1.5px solid var(--border);
+    background: var(--card); font-size: .78rem; font-weight: 700; cursor: pointer;
+    font-family: inherit; color: var(--muted); transition: all .15s;
+  }
+  .rev-filter-btn:hover { border-color: var(--accent); color: var(--primary); }
+  .rev-filter-btn.active                { border-color: var(--primary); background: #ecfdf5; color: var(--primary-dark); }
+  .rev-filter-btn.f-salah.active        { border-color: var(--danger);  background: #fee2e2; color: #991b1b; }
+  .rev-filter-btn.f-benar.active        { border-color: var(--success); background: #dcfce7; color: #166534; }
+  .rev-filter-btn.f-kosong.active       { border-color: #94a3b8; background: #f1f5f9; color: #475569; }
+  .rev-empty { text-align:center; padding:48px 24px; color:var(--muted); font-size:.95rem; }
+
+  /* tipe sub-section label inside review list */
+  .rev-section-label {
+    font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--muted); padding: 18px 4px 8px; border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  .rev-section-label:first-child { border-top: none; padding-top: 6px; }
   .rev-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 22px; margin-bottom: 14px; box-shadow: 0 2px 10px rgba(0,0,0,.04); }
   .rev-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
   .rev-no { font-weight: 800; font-size: .9rem; color: var(--muted); }
@@ -321,6 +381,8 @@
       <button class="btn btn-primary" onclick="location.reload()">↻ Tes Ulang</button>
     </div>
   </div>
+  <div class="rev-tabs" id="revTabBar"></div>
+  <div id="revSummary"></div>
   <div id="reviewList"></div>
 </div>
 
@@ -573,6 +635,9 @@ function showResult() {
 }
 
 // ── REVIEW / PEMBAHASAN ────────────────────────────
+let revTab    = 'all';
+let revFilter = 'all';
+
 function showReview() {
   document.getElementById('result').style.display = 'none';
   const review = document.getElementById('review');
@@ -580,40 +645,145 @@ function showReview() {
 
   if (peserta) document.getElementById('reviewNama').textContent = `Peserta: ${peserta}`;
 
-  review.querySelector('#reviewList').innerHTML = soalList.map(q => {
+  revTab    = 'all';
+  revFilter = 'all';
+  _buildRevTabs();
+  _renderRevSummary();
+  _renderRevList();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function switchRevTab(aspek) {
+  revTab    = aspek;
+  revFilter = 'all';
+  _buildRevTabs();
+  _renderRevSummary();
+  _renderRevList();
+  window.scrollTo({ top: document.getElementById('revTabBar').offsetTop - 80, behavior: 'smooth' });
+}
+
+function switchRevFilter(f) {
+  revFilter = f;
+  _renderRevList();
+  document.querySelectorAll('.rev-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+}
+
+function _buildRevTabs() {
+  const defs = [
+    { key:'all',      label:'Semua',    cls:'' },
+    { key:'verbal',   label:'Verbal',   cls:'t-verbal' },
+    { key:'analitis', label:'Analitis', cls:'t-analitis' },
+    { key:'praktis',  label:'Praktis',  cls:'t-praktis' },
+  ];
+  const counts = { all: soalList.length, verbal:0, analitis:0, praktis:0 };
+  for (const q of soalList) counts[q.aspek]++;
+
+  document.getElementById('revTabBar').innerHTML = defs.map(d => `
+    <button class="rev-tab ${d.cls}${revTab===d.key?' active':''}" onclick="switchRevTab('${d.key}')">
+      ${d.label} <span class="rev-tab-badge">${counts[d.key]}</span>
+    </button>`).join('');
+}
+
+function _revQs() {
+  return revTab === 'all' ? soalList : soalList.filter(q => q.aspek === revTab);
+}
+
+function _renderRevSummary() {
+  const qs = _revQs();
+  let benar = 0, salah = 0, kosong = 0;
+  for (const q of qs) {
+    const sel = answers[q.id] || [];
+    if (!sel.length)     kosong++;
+    else if (isCorrect(q)) benar++;
+    else                   salah++;
+  }
+  const tot = qs.length;
+  const pct = tot ? Math.round(benar / tot * 100) : 0;
+  const fillColor = pct >= 70 ? 'var(--success)' : pct >= 50 ? 'var(--warn)' : 'var(--danger)';
+
+  document.getElementById('revSummary').innerHTML = `
+    <div class="rev-summary">
+      <div class="rev-sum-stat">
+        <div class="n" style="color:var(--success)">${benar}</div>
+        <div class="l">Benar</div>
+      </div>
+      <div class="rev-sum-divider"></div>
+      <div class="rev-sum-stat">
+        <div class="n" style="color:var(--danger)">${salah}</div>
+        <div class="l">Salah</div>
+      </div>
+      <div class="rev-sum-divider"></div>
+      <div class="rev-sum-stat">
+        <div class="n" style="color:var(--muted)">${kosong}</div>
+        <div class="l">Kosong</div>
+      </div>
+      <div class="rev-sum-bar">
+        <div class="pct-lbl" style="color:${fillColor}">${pct}% Benar dari ${tot} soal</div>
+        <div class="rev-sum-bar-track">
+          <div class="rev-sum-bar-fill" style="width:${pct}%;background:${fillColor};"></div>
+        </div>
+      </div>
+    </div>
+    <div class="rev-filter">
+      <button class="rev-filter-btn active"    data-f="all"    onclick="switchRevFilter('all')">Semua (${tot})</button>
+      <button class="rev-filter-btn f-salah"   data-f="salah"  onclick="switchRevFilter('salah')">Salah (${salah})</button>
+      <button class="rev-filter-btn f-benar"   data-f="benar"  onclick="switchRevFilter('benar')">Benar (${benar})</button>
+      <button class="rev-filter-btn f-kosong"  data-f="kosong" onclick="switchRevFilter('kosong')">Kosong (${kosong})</button>
+    </div>`;
+}
+
+function _renderRevList() {
+  let qs = _revQs();
+  if (revFilter === 'benar')  qs = qs.filter(q => isCorrect(q));
+  else if (revFilter === 'salah')  qs = qs.filter(q => { const s = answers[q.id]||[]; return s.length>0 && !isCorrect(q); });
+  else if (revFilter === 'kosong') qs = qs.filter(q => !(answers[q.id]||[]).length);
+
+  if (!qs.length) {
+    document.getElementById('reviewList').innerHTML = `<div class="rev-empty">Tidak ada soal untuk ditampilkan.</div>`;
+    return;
+  }
+
+  let lastTipe = null;
+  document.getElementById('reviewList').innerHTML = qs.map(q => {
+    let sectionHdr = '';
+    if (q.tipe !== lastTipe) {
+      lastTipe = q.tipe;
+      const tipeColors = { sinonim:'#065f46', antonim:'#065f46', analogi:'#065f46', ganjil:'#065f46', deret:'#155e75', hitung:'#92400e' };
+      sectionHdr = `<div class="rev-section-label" style="color:${tipeColors[q.tipe]||'var(--muted)'}">
+        ${TIPE_LABEL[q.tipe] || q.tipe} · ${q.id === qs[0].id && qs.filter(x=>x.tipe===q.tipe).length === qs.length ? '' : `No. ${q.id}${(() => { const last = [...qs].reverse().find(x=>x.tipe===q.tipe); return last && last.id !== q.id ? '–'+last.id : ''; })()}`}
+      </div>`;
+    }
+
     const sel = answers[q.id] || [];
     const answered = sel.length > 0;
     const correct = isCorrect(q);
     const status = !answered ? 'kosong' : (correct ? 'benar' : 'salah');
     const statusText = !answered ? 'Tidak dijawab' : (correct ? 'Benar' : 'Salah');
 
-    const badgeClass = {verbal:'badge-verbal',analitis:'badge-analitis',praktis:'badge-praktis'}[q.aspek] || '';
-    const head = `${ASPEK_LABEL[q.aspek]} · ${TIPE_LABEL[q.tipe] || q.tipe}`;
+    const badgeClass = {verbal:'badge-verbal',analitis:'badge-analitis',praktis:'badge-praktis'}[q.aspek]||'';
     const soalTxt = q.soal ? q.soal : q.instruksi;
 
     const opts = Object.entries(q.pilihan).map(([key, val]) => {
       const isKunci = q.kunci.includes(key);
       const isPick  = sel.includes(key);
       let cls = '', mark = '';
-      if (isKunci) { cls = 'kunci'; mark = `<span class="rev-mark k">✓ Kunci${isPick ? ' · jawabanmu' : ''}</span>`; }
-      else if (isPick) { cls = 'salah-pick'; mark = `<span class="rev-mark s">✗ Jawabanmu</span>`; }
+      if (isKunci)      { cls='kunci';      mark=`<span class="rev-mark k">✓ Kunci${isPick?' · jawabanmu':''}</span>`; }
+      else if (isPick)  { cls='salah-pick'; mark=`<span class="rev-mark s">✗ Jawabanmu</span>`; }
       return `<div class="rev-opt ${cls}"><span class="rp">${key.toUpperCase()}</span><span>${escHtml(val)}</span>${mark}</div>`;
     }).join('');
 
-    return `
+    return `${sectionHdr}
       <div class="rev-card">
         <div class="rev-top">
-          <span class="badge ${badgeClass}">${head}</span>
+          <span class="badge ${badgeClass}">${ASPEK_LABEL[q.aspek]} · ${TIPE_LABEL[q.tipe]||q.tipe}</span>
           <span class="rev-no">No. ${q.id}</span>
           <span class="rev-status ${status}">${statusText}</span>
         </div>
         <div class="rev-soal">${escHtml(soalTxt)}</div>
         ${opts}
-        <div class="rev-bahas"><b>Pembahasan:</b> ${escHtml(q.pembahasan || '-')}</div>
+        <div class="rev-bahas"><b>Pembahasan:</b> ${escHtml(q.pembahasan||'-')}</div>
       </div>`;
   }).join('');
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function backToResult() {
