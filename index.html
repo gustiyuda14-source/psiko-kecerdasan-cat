@@ -164,6 +164,22 @@
   .stat-box .num { font-size: 1.7rem; font-weight: 800; color: var(--primary); }
   .stat-box .lbl { font-size: .78rem; color: var(--muted); margin-top: 3px; }
 
+  /* ── LOGIN / NAMA PESERTA ── */
+  .login-box { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 420px; box-shadow: 0 4px 20px rgba(15,23,42,.06); display: flex; flex-direction: column; gap: 12px; text-align: left; }
+  .login-box label { font-size: .82rem; font-weight: 800; color: var(--text); letter-spacing: .01em; }
+  .login-box input { width: 100%; padding: 13px 16px; border: 2px solid var(--border); border-radius: 11px; font-size: 1rem; font-family: inherit; color: var(--text); transition: border-color .16s, box-shadow .16s; }
+  .login-box input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+  .login-box input.error { border-color: var(--danger); }
+  .login-error { display: none; font-size: .8rem; color: var(--danger); font-weight: 600; margin-top: -4px; }
+  .login-error.show { display: block; }
+
+  /* ── NAMA DI HEADER & HASIL ── */
+  .peserta-chip { display: none; align-items: center; gap: 7px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25); border-radius: 10px; padding: 6px 14px; font-size: .82rem; font-weight: 700; max-width: 220px; }
+  .peserta-chip .pc-ico { font-size: .9rem; }
+  .peserta-chip .pc-nama { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .result-nama { font-size: 1rem; color: var(--muted); }
+  .result-nama b { color: var(--primary-dark); }
+
   /* ── RESULT ── */
   #result { display: none; flex-direction: column; align-items: center; gap: 24px; padding: 32px 24px; text-align: center; max-width: 640px; margin: 0 auto; }
   #result h2 { font-size: 1.7rem; }
@@ -215,7 +231,10 @@
       <span>Tes Kecerdasan · CAT</span>
     </div>
   </div>
-  <div class="timer-box" id="timerDisplay">--:--</div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="peserta-chip" id="pesertaChip"><span class="pc-ico">👤</span><span class="pc-nama" id="pesertaChipNama"></span></div>
+    <div class="timer-box" id="timerDisplay">--:--</div>
+  </div>
 </header>
 
 <!-- Landing -->
@@ -233,7 +252,14 @@
   <p style="font-size:.85rem;color:var(--muted);">
     <strong>Verbal</strong> (1–60) · <strong>Deret Angka & Huruf</strong> (61–80) · <strong>Hitung</strong> (81–100)
   </p>
-  <button class="btn btn-primary" style="font-size:1.02rem;padding:15px 46px;" onclick="startTest()">Mulai Tes</button>
+  <div class="login-box">
+    <label for="pesertaNama">Nama Peserta</label>
+    <input type="text" id="pesertaNama" placeholder="Tulis nama lengkap kamu di sini…"
+           autocomplete="name" maxlength="60"
+           onkeydown="if(event.key==='Enter')startTest()" oninput="clearNamaError()">
+    <div class="login-error" id="namaError">Mohon isi nama kamu terlebih dahulu.</div>
+    <button class="btn btn-primary" style="font-size:1.02rem;padding:15px 46px;width:100%;" onclick="startTest()">Mulai Tes</button>
+  </div>
 </div>
 
 <!-- Loading -->
@@ -271,6 +297,7 @@
 <!-- Result -->
 <div id="result">
   <h2>Hasil Tes</h2>
+  <div class="result-nama" id="resultNama"></div>
   <div class="score-circle">
     <div class="pct" id="scorePct">0%</div>
     <div class="lbl" id="scoreRaw">0 / 100</div>
@@ -288,7 +315,7 @@
 <!-- Review / Pembahasan -->
 <div id="review">
   <div class="review-head">
-    <h2>Pembahasan Soal</h2>
+    <h2>Pembahasan Soal<span id="reviewNama" style="display:block;font-size:.85rem;font-weight:600;color:var(--muted);margin-top:2px;"></span></h2>
     <div style="display:flex;gap:10px;">
       <button class="btn btn-outline" onclick="backToResult()">← Kembali ke Hasil</button>
       <button class="btn btn-primary" onclick="location.reload()">↻ Tes Ulang</button>
@@ -303,6 +330,7 @@
 // ── STATE ──────────────────────────────────────────
 let soalList = [];
 let answers  = {};      // { id: [selected options] }
+let peserta  = '';      // nama peserta
 let current  = 0;
 let timerSec = 90 * 60;
 let timerInterval = null;
@@ -320,6 +348,20 @@ const SECTIONS = [
 
 // ── INIT ───────────────────────────────────────────
 async function startTest() {
+  const input = document.getElementById('pesertaNama');
+  const nama  = input.value.trim().replace(/\s+/g, ' ');
+  if (nama.length < 2) {
+    input.classList.add('error');
+    document.getElementById('namaError').classList.add('show');
+    input.focus();
+    return;
+  }
+  peserta = nama;
+
+  const chip = document.getElementById('pesertaChip');
+  document.getElementById('pesertaChipNama').textContent = peserta;
+  chip.style.display = 'flex';
+
   document.getElementById('landing').classList.add('hidden');
   document.getElementById('loading').classList.remove('hidden');
   try {
@@ -335,6 +377,11 @@ async function startTest() {
   document.getElementById('quiz').classList.remove('hidden');
   renderQuestion();
   startTimer();
+}
+
+function clearNamaError() {
+  document.getElementById('pesertaNama').classList.remove('error');
+  document.getElementById('namaError').classList.remove('show');
 }
 
 // ── TIMER ──────────────────────────────────────────
@@ -508,6 +555,10 @@ function showResult() {
     if (isCorrect(q)) { aspekStats[q.aspek].ok++; totalOk++; }
   }
 
+  if (peserta) {
+    document.getElementById('resultNama').innerHTML = `Peserta: <b>${escHtml(peserta)}</b>`;
+  }
+
   const pct = Math.round(totalOk / soalList.length * 100);
   document.getElementById('scorePct').textContent = pct + '%';
   document.getElementById('scoreRaw').textContent = `${totalOk} / ${soalList.length} benar`;
@@ -526,6 +577,8 @@ function showReview() {
   document.getElementById('result').style.display = 'none';
   const review = document.getElementById('review');
   review.style.display = 'block';
+
+  if (peserta) document.getElementById('reviewNama').textContent = `Peserta: ${peserta}`;
 
   review.querySelector('#reviewList').innerHTML = soalList.map(q => {
     const sel = answers[q.id] || [];
