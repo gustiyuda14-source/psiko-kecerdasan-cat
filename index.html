@@ -279,6 +279,22 @@
   .app-footer { text-align: center; font-size: .76rem; color: var(--muted); padding: 18px; }
 
   .hidden { display: none !important; }
+
+  /* ── PAKET LANJUT ── */
+  .badge-silogisme { background: #ede9fe; color: #4c1d95; }
+  .tingkat-stars { font-size: .72rem; color: #f59e0b; letter-spacing: .02em; margin-left: 4px; vertical-align: middle; }
+  .mm-btn.hard { border-color: #a78bfa !important; color: #5b21b6 !important; font-weight: 800; }
+  .mode-grid { display: flex; gap: 10px; width: 100%; max-width: 420px; margin-bottom: 16px; }
+  .mode-card {
+    flex: 1; border: 2.5px solid var(--border); border-radius: var(--radius);
+    padding: 14px 10px; cursor: pointer; text-align: center; background: var(--card);
+    transition: border-color .18s, background .18s; font-family: inherit;
+  }
+  .mode-card:hover { border-color: var(--accent); }
+  .mode-card.active-standar { border-color: var(--primary); background: #ecfdf5; }
+  .mode-card.active-lanjut  { border-color: #7c3aed; background: #faf5ff; }
+  .mc-title { font-weight: 800; font-size: .95rem; margin-bottom: 4px; }
+  .mc-sub   { font-size: .74rem; color: var(--muted); line-height: 1.45; }
 </style>
 </head>
 <body>
@@ -293,6 +309,7 @@
   </div>
   <div style="display:flex;align-items:center;gap:12px;">
     <div class="peserta-chip" id="pesertaChip"><span class="pc-ico">👤</span><span class="pc-nama" id="pesertaChipNama"></span></div>
+    <span class="badge hidden" id="paketBadge" style="font-size:.65rem;padding:4px 10px;"></span>
     <div class="timer-box" id="timerDisplay">--:--</div>
   </div>
 </header>
@@ -312,6 +329,19 @@
   <p style="font-size:.85rem;color:var(--muted);">
     <strong>Verbal</strong> (1–60) · <strong>Deret Angka & Huruf</strong> (61–80) · <strong>Hitung</strong> (81–100)
   </p>
+  <div style="text-align:left;">
+    <p style="font-size:.8rem;color:var(--muted);font-weight:700;margin-bottom:8px;">Pilih Paket Soal:</p>
+    <div class="mode-grid">
+      <button class="mode-card active-standar" id="modeStandar" onclick="selectMode('standar')">
+        <div class="mc-title">Paket Standar</div>
+        <div class="mc-sub">100 soal · Tingkat 2–3<br>Latihan & pemanasan</div>
+      </button>
+      <button class="mode-card" id="modeLanjut" onclick="selectMode('lanjut')">
+        <div class="mc-title" style="color:#7c3aed;">Paket Lanjut ★★★★</div>
+        <div class="mc-sub">100 soal · Tingkat 4–5<br>Kompetitif · +Silogisme</div>
+      </button>
+    </div>
+  </div>
   <div class="login-box">
     <label for="pesertaNama">Nama Peserta</label>
     <input type="text" id="pesertaNama" placeholder="Tulis nama lengkap kamu di sini…"
@@ -363,6 +393,7 @@
     <div class="pct" id="scorePct">0%</div>
     <div class="lbl" id="scoreRaw">0 / 100</div>
   </div>
+  <div id="difficultyLabel" style="display:none;font-size:.85rem;font-weight:700;color:#7c3aed;padding:6px 14px;background:#f5f3ff;border-radius:8px;margin-bottom:4px;"></div>
   <table class="aspek-table">
     <thead><tr><th>Aspek</th><th>Benar</th><th>Total</th><th>Skor</th></tr></thead>
     <tbody id="aspekBody"></tbody>
@@ -397,16 +428,22 @@ let peserta  = '';      // nama peserta
 let current  = 0;
 let timerSec = 90 * 60;
 let timerInterval = null;
+let activePackage = 'standar'; // 'standar' | 'lanjut'
 
 const ASPEK_LABEL = { verbal:'Verbal', analitis:'Analitis', praktis:'Praktis' };
 const TIPE_LABEL  = {
   sinonim:'Sinonim', antonim:'Antonim', analogi:'Analogi', ganjil:'Kata Ganjil',
-  deret:'Deret', hitung:'Hitung'
+  deret:'Deret', hitung:'Hitung', silogisme:'Silogisme'
 };
 const SECTIONS = [
   { from: 1,  label: 'Verbal',           color: '#047857' },
   { from: 61, label: 'Deret',            color: '#0e7490' },
   { from: 81, label: 'Hitung',           color: '#92400e' },
+];
+const SECTIONS_LANJUT = [
+  { from: 1,  label: 'Verbal Lanjut',           color: '#047857' },
+  { from: 61, label: 'Analitis Lanjut',          color: '#7c3aed' },
+  { from: 81, label: 'Hitung Lanjut',            color: '#92400e' },
 ];
 
 // ── INIT ───────────────────────────────────────────
@@ -428,12 +465,21 @@ async function startTest() {
   document.getElementById('landing').classList.add('hidden');
   document.getElementById('loading').classList.remove('hidden');
   try {
-    const res  = await fetch('soal.json');
+    const jsonFile = activePackage === 'lanjut' ? 'soal_lanjut.json' : 'soal.json';
+    const res  = await fetch(jsonFile);
     const data = await res.json();
     soalList   = data.soal;
   } catch (e) {
-    alert('Gagal memuat soal.json. Pastikan file ada di folder yang sama.');
+    alert('Gagal memuat soal. Pastikan file soal ada di folder yang sama.');
     location.reload(); return;
+  }
+
+  if (activePackage === 'lanjut') {
+    const badge = document.getElementById('paketBadge');
+    badge.textContent = 'Paket Lanjut';
+    badge.style.background = '#ede9fe';
+    badge.style.color = '#4c1d95';
+    badge.classList.remove('hidden');
   }
   buildMinimap();
   document.getElementById('loading').classList.add('hidden');
@@ -445,6 +491,12 @@ async function startTest() {
 function clearNamaError() {
   document.getElementById('pesertaNama').classList.remove('error');
   document.getElementById('namaError').classList.remove('show');
+}
+
+function selectMode(pkg) {
+  activePackage = pkg;
+  document.getElementById('modeStandar').className = 'mode-card' + (pkg === 'standar' ? ' active-standar' : '');
+  document.getElementById('modeLanjut').className  = 'mode-card' + (pkg === 'lanjut'  ? ' active-lanjut'  : '');
 }
 
 // ── TIMER ──────────────────────────────────────────
@@ -466,8 +518,9 @@ function startTimer() {
 function buildMinimap() {
   const mm = document.getElementById('minimap');
   mm.innerHTML = '';
+  const sections = activePackage === 'lanjut' ? SECTIONS_LANJUT : SECTIONS;
   soalList.forEach((q, i) => {
-    const sec = SECTIONS.find(s => s.from === q.id);
+    const sec = sections.find(s => s.from === q.id);
     if (sec) {
       const lbl = document.createElement('div');
       lbl.className = 'mm-section-label';
@@ -477,8 +530,9 @@ function buildMinimap() {
     }
     const btn = document.createElement('button');
     btn.className = 'mm-btn';
+    if (q.tingkat >= 4) btn.classList.add('hard');
     btn.textContent = q.id;
-    btn.title = `Soal ${q.id}`;
+    btn.title = `Soal ${q.id}${q.tingkat ? ' · ★'.repeat(q.tingkat) : ''}`;
     btn.onclick = () => { current = i; renderQuestion(); };
     btn.id = `mm-${q.id}`;
     mm.appendChild(btn);
@@ -507,9 +561,11 @@ function renderQuestion() {
   const aspekLabel = ASPEK_LABEL[q.aspek] || q.aspek;
   const tipeLabel  = TIPE_LABEL[q.tipe] || q.tipe;
 
+  const stars = q.tingkat ? '★'.repeat(q.tingkat) + '☆'.repeat(5 - q.tingkat) : '';
   let html = `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
       <span class="badge ${badgeClass}">${aspekLabel} · ${tipeLabel}</span>
+      ${stars ? `<span class="tingkat-stars" title="Tingkat ${q.tingkat}">${stars}</span>` : ''}
       <span style="margin-left:auto;font-size:.8rem;color:var(--muted);font-weight:700;">No. ${q.id}</span>
     </div>`;
 
@@ -626,11 +682,21 @@ function showResult() {
   document.getElementById('scorePct').textContent = pct + '%';
   document.getElementById('scoreRaw').textContent = `${totalOk} / ${soalList.length} benar`;
 
-  const labels = { verbal:'Verbal (1–60)', analitis:'Analitis · Deret (61–80)', praktis:'Praktis · Hitung (81–100)' };
+  const labels = activePackage === 'lanjut'
+    ? { verbal:'Verbal Lanjut (1–60)', analitis:'Analitis Lanjut (61–80)', praktis:'Hitung Lanjut (81–100)' }
+    : { verbal:'Verbal (1–60)', analitis:'Analitis · Deret (61–80)', praktis:'Praktis · Hitung (81–100)' };
   document.getElementById('aspekBody').innerHTML = Object.entries(aspekStats).map(([k, v]) => {
     const p = v.tot ? Math.round(v.ok / v.tot * 100) : 0;
     return `<tr><td>${labels[k]}</td><td>${v.ok}</td><td>${v.tot}</td><td><strong>${p}%</strong></td></tr>`;
   }).join('');
+
+  const dlEl = document.getElementById('difficultyLabel');
+  if (activePackage === 'lanjut') {
+    dlEl.textContent = '★★★★ Kemampuan Level Lanjut (Kompetitif / Seleksi)';
+    dlEl.style.display = 'block';
+  } else {
+    dlEl.style.display = 'none';
+  }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -749,7 +815,7 @@ function _renderRevList() {
     let sectionHdr = '';
     if (q.tipe !== lastTipe) {
       lastTipe = q.tipe;
-      const tipeColors = { sinonim:'#065f46', antonim:'#065f46', analogi:'#065f46', ganjil:'#065f46', deret:'#155e75', hitung:'#92400e' };
+      const tipeColors = { sinonim:'#065f46', antonim:'#065f46', analogi:'#065f46', ganjil:'#065f46', deret:'#155e75', hitung:'#92400e', silogisme:'#4c1d95' };
       sectionHdr = `<div class="rev-section-label" style="color:${tipeColors[q.tipe]||'var(--muted)'}">
         ${TIPE_LABEL[q.tipe] || q.tipe} · ${q.id === qs[0].id && qs.filter(x=>x.tipe===q.tipe).length === qs.length ? '' : `No. ${q.id}${(() => { const last = [...qs].reverse().find(x=>x.tipe===q.tipe); return last && last.id !== q.id ? '–'+last.id : ''; })()}`}
       </div>`;
